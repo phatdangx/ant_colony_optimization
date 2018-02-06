@@ -47,6 +47,7 @@ class Ant(object):
         # local increase of pheromone
         self.pheromone_delta = []                                                           
         self.candidate_list = aco.customers
+        self.selected_customer = {}
         
     def any_feasible_node(self, capacity_remaining: int, delivery_time: int):
         result = False
