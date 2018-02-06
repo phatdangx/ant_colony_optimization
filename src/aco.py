@@ -5,8 +5,8 @@ import math
 class CustomersGraph(object):
     def __init__(self, cost_matrix : list, total_customer: int, number_of_customer_in_first_route: int,
                  total_cost_in_first_route: int):
-        self.cost_matrix: cost_matrix
-        self.total_customer: total_customer
+        self.cost_matrix = cost_matrix
+        self.total_customer = total_customer
         self.pheromone_matrix = [[1 / (number_of_customer_in_first_route * total_cost_in_first_route) for j in range(total_customer)]
                           for i in range(total_customer)]
 
@@ -33,7 +33,7 @@ class ACO(object):
                 for vehicle in self.vehicles:
                     is_feasible = True
                     while is_feasible:
-
+                        ant.select_next()
                         is_feasible = ant.any_feasible_node()
 
 
@@ -47,7 +47,12 @@ class Ant(object):
         # local increase of pheromone
         self.pheromone_delta = []                                                           
         self.candidate_list = aco.customers
-        self.selected_customer = {}
+        self.current_customer = {}
+        self.eta = [[0 if i == j else 1/ customers_graph.cost_matrix[i][j] for j in range(customers_graph.total_customer)]
+                    for i in range(customers_graph.total_customer)]
+        start = aco.customers[random.randint(0,customers_graph.total_customer - 1)]
+        self.current_customer = start
+        self.candidate_list.remove(start)
         
     def any_feasible_node(self, capacity_remaining: int, delivery_time: int):
         result = False
@@ -60,8 +65,43 @@ class Ant(object):
         Q0 = 0.9
         denominator = 0
         q = random.uniform(0, 1)
+        selected_customer = {}
 
-        return 0
+        for candidate in self.candidate_list:
+            i = self.current_customer.get("index")
+            j = candidate.get("index")
+            denominator += self.customers_graph.pheromone_matrix[i][j] ** self.aco.alpha * self.eta[i][j] ** self.aco.beta
+
+        probabilities = [0 for i in range(self.customers_graph.total_customer)]
+        attractiveness = [0 for i in range(self.customers_graph.total_customer)]
+        for customer in self.aco.customers:
+            try:
+                self.candidate_list.index(customer) # test if the candidate list contains this customer
+                i = self.current_customer.get("index")
+                j = customer.get("index")
+                probabilities[customer.get("index")] = self.customers_graph.pheromone_matrix[i][j] ** self.aco.alpha * \
+                    self.eta[i][j] ** self.aco.beta / denominator
+                attractiveness[customer.get("index")] = self.customers_graph.pheromone_matrix[i][j] ** self.aco.alpha * \
+                    self.eta[i][j] ** self.aco.beta
+            except ValueError:
+                pass #do nothing
+
+        if q > Q0:
+            rand = random.random()
+            for i, probability in enumerate(probabilities):
+                rand -= probability
+                if rand <=0:
+                    selected_customer = self.candidate_list[i]
+                    break
+        else:
+            max_attractiveness = max(attractiveness)
+            customer_index = attractiveness.index(max_attractiveness)
+            selected_customer = self.candidate_list[customer_index]
+
+        self.candidate_list.remove(selected_customer)
+        self.current_customer = selected_customer
+
+
 
     def update_pheromone_delta(self):
         return 0
