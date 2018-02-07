@@ -1,7 +1,7 @@
 import math
 import random
 
-from src.aco import ACO, Customers_Graph
+from src.aco import ACO, CustomersGraph
 
 is_visited = []
 
@@ -96,9 +96,14 @@ def main():
         cost_matrix.append(row)
 
     total_vehicle = len(vehicles)
-    aco = ACO(1, 1, 1, total_vehicle, 10, total_customer, vehicles)
-    customers_graph = Customers_Graph(cost_matrix, total_customer)
+    aco = ACO(1, 1, 1, total_vehicle, 10, total_customer, vehicles, customers, total_cost_in_first_route)
+    customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
+    best_route = aco.solve(customers_graph)
 
+    for single_route in best_route:
+        for item in single_route:
+            print(item.get("index"))
+        print("---")
 
 
 main()
