@@ -37,16 +37,18 @@ def find_shortest_path(customers: list , vehicle_capacity: int):
 
 
 def create_corresponding_graph(vehicles: list, customers: list):
-    intial_route_list = []
+    vehicles = vehicles
+    customers = customers
+    initial_route_list = []
     for vehicle in vehicles:
-        intial_route = find_shortest_path(customers, vehicle.get("capacity"))
-        for item in intial_route:
+        initial_route = find_shortest_path(customers, vehicle.get("capacity"))
+        for item in initial_route:
             if item.get("index") != 0:
                 customers.remove(item)
-        intial_route_list.append(intial_route)
+        initial_route_list.append(initial_route)
         if len(customers) == 1:
             break
-    return intial_route_list
+    return initial_route_list
 
 
 def main():
@@ -73,7 +75,8 @@ def main():
     is_visited = [0 for i in range(len(customers))]
 
     # Create corresponding graph
-    initial_route_list = create_corresponding_graph(vehicles, customers)
+    customers_parameter = list(customers)
+    initial_route_list = create_corresponding_graph(vehicles, customers_parameter)
 
     # Calculate number of customer and the total cost after creating corresponding graph
     number_of_customer_in_first_route = 0
@@ -96,7 +99,7 @@ def main():
         cost_matrix.append(row)
 
     total_vehicle = len(vehicles)
-    aco = ACO(1, 1, 1, total_vehicle, 10, total_customer, vehicles, customers, total_cost_in_first_route)
+    aco = ACO(1, 1, 1, total_vehicle, 100, total_customer, vehicles, customers, total_cost_in_first_route)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 
