@@ -99,7 +99,8 @@ def main():
         cost_matrix.append(row)
 
     total_vehicle = len(vehicles)
-    aco = ACO(1, 1, 1, total_vehicle, 100, total_customer, vehicles, customers, total_cost_in_first_route)
+    index_list_special_vehicles = [1]
+    aco = ACO(1, 1, 1, total_vehicle, 100, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 

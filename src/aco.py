@@ -11,7 +11,7 @@ class CustomersGraph(object):
 
 class ACO(object):
     def __init__(self, alpha: int, beta: int, gama: int, M: int, E: int , ITE: int, vehicles: list, customers: list,
-                 total_cost_in_first_route: float):
+                 total_cost_in_first_route: float, initial_route_list: list, index_list_special_vehicles: list):
         self.alpha = alpha
         self.beta = beta
         self.gama = gama
@@ -21,16 +21,26 @@ class ACO(object):
         self.vehicles = list(vehicles)
         self.customers = list(customers)
         self.total_cost_in_first_route = total_cost_in_first_route
+        self.initial_route_list = list(initial_route_list)
+        self.index_list_special_vehicles = list(index_list_special_vehicles)
 
     def update_global_pheromone(self, customer_graph: CustomersGraph, best_cost: float, local_pherommone_of_ant: list):
         for i, row in enumerate(customer_graph.global_pheromone):
             for j, col in enumerate(row):
-                customer_graph.global_pheromone[i][j] = (1 - self.gama) * local_pherommone_of_ant[i][j]\
-                                                        + self.gama / best_cost
+                customer_graph.global_pheromone[i][j] = local_pherommone_of_ant[i][j] + self.gama / best_cost
+    def update_global_pheromone_by_maximum_customer_route(self, customer_graph: CustomersGraph,maximum_customer: int, maximum_customer_route: list):
+        for single_route in maximum_customer_route:
+            for i in range(len(single_route) - 1):
+                from_node_index = single_route[i].get("index")
+                to_node_index = single_route[i + 1].get("index")
+                customer_graph.global_pheromone[from_node_index][to_node_index] = customer_graph.global_pheromone[from_node_index][to_node_index] + self.gama/maximum_customer
 
     def solve(self, customers_graph: CustomersGraph):
         best_cost = self.total_cost_in_first_route
         best_route = []
+        best_route_with_maximum_customer = list(self.initial_route_list)
+        maximum_customer = self.total_cost_in_first_route
+        is_updated = False
         for e in range(self.E):
             ants = [Ant(self, customers_graph, i) for i in range(1, self.ITE)]
             ant_of_best_route = ants[0]
@@ -38,29 +48,31 @@ class ACO(object):
             for ant in ants:
                 ite += 1
                 for vehicle in self.vehicles:
-                    is_feasible = True
-                    route_for_single_vehicle = []
-                    if self.vehicles.index(vehicle) != 0:
-                        ant.current_customer = self.customers[0]  # if it is not the first vehicle, move the ant back to depot
-                        ant.ant_route = [self.customers[0]]
-                    while is_feasible:
-                        ant.select_next()
-                        capacity_remaining = vehicle.get("capacity")
-                        delivery_time = 0
-                        for node in ant.ant_route:
-                            capacity_remaining -= node.get("demand")
-                        for i in range(len(ant.ant_route) - 1):
-                            from_node = ant.ant_route[i]
-                            to_node = ant.ant_route[i+1]
-                            delivery_time += ant.customers_graph.cost_matrix[from_node.get("index")][to_node.get("index")]/vehicle.get("velocity")
-                        if capacity_remaining < 0 or delivery_time > ant.current_customer.get("closetime"):
-                            ant.candidate_list.append(ant.current_customer)
-                            ant.ant_route.remove(ant.current_customer)
-                            break
-                        is_feasible = ant.any_feasible_node(capacity_remaining, delivery_time)
-                    # After finish the its route, current vehicle move back to the depot --> add depot to the end of the route
-                    ant.ant_route.append(self.customers[0])
-                    ant.ant_route_for_all_vehicles.append(ant.ant_route)
+                    if vehicle.get("index") in self.index_list_special_vehicles:
+                        1111
+                    else:
+                        is_feasible = True
+                        if self.vehicles.index(vehicle) != 0:
+                            ant.current_customer = self.customers[0]  # if it is not the first vehicle, move the ant back to depot
+                            ant.ant_route = [self.customers[0]]
+                        while is_feasible:
+                            ant.select_next()
+                            capacity_remaining = vehicle.get("capacity")
+                            delivery_time = 0
+                            for node in ant.ant_route:
+                                capacity_remaining -= node.get("demand")
+                            for i in range(len(ant.ant_route) - 1):
+                                from_node = ant.ant_route[i]
+                                to_node = ant.ant_route[i+1]
+                                delivery_time += ant.customers_graph.cost_matrix[from_node.get("index")][to_node.get("index")]/vehicle.get("velocity")
+                            if capacity_remaining < 0 or delivery_time > ant.current_customer.get("closetime"):
+                                ant.candidate_list.append(ant.current_customer)
+                                ant.ant_route.remove(ant.current_customer)
+                                break
+                            is_feasible = ant.any_feasible_node(capacity_remaining, delivery_time)
+                        # After finish the its route, current vehicle move back to the depot --> add depot to the end of the route
+                        ant.ant_route.append(self.customers[0])
+                        ant.ant_route_for_all_vehicles.append(ant.ant_route)
 
                 # calculate current total cost for this ant
                 for single_route in ant.ant_route_for_all_vehicles:
@@ -73,8 +85,26 @@ class ACO(object):
                     best_cost = ant.total_cost
                     best_route = list(ant.ant_route_for_all_vehicles)
                     ant_of_best_route.local_pheromone = list(ant.local_pheromone)
+
+                #Detect whether the ant route has more customer
+                number_of_customer_in_ant_route = 0
+                for single_route in ant.ant_route_for_all_vehicles:
+                    for item in single_route:
+                        if item.get("index") != 0:
+                            number_of_customer_in_ant_route += 1
+                if number_of_customer_in_ant_route >= maximum_customer:
+                    best_route_with_maximum_customer.clear()
+                    best_route_with_maximum_customer = list(ant.ant_route_for_all_vehicles)
+                    maximum_customer = number_of_customer_in_ant_route
+                    is_updated = True
+
             self.update_global_pheromone(customers_graph, best_cost, ant_of_best_route.local_pheromone)
-        return best_route
+            self.update_global_pheromone_by_maximum_customer_route(customers_graph,maximum_customer,best_route_with_maximum_customer)
+
+        if is_updated:
+            return best_route_with_maximum_customer
+        else:
+            return best_route
 
 
 class Ant(object):   
