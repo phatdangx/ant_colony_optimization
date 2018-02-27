@@ -48,14 +48,28 @@ class ACO(object):
             for ant in ants:
                 ite += 1
                 for vehicle in self.vehicles:
-                    if vehicle.get("index") in self.index_list_special_vehicles:
-                        1111
-                    else:
-                        is_feasible = True
-                        if self.vehicles.index(vehicle) != 0:
-                            ant.current_customer = self.customers[0]  # if it is not the first vehicle, move the ant back to depot
-                            ant.ant_route = [self.customers[0]]
-                        while is_feasible:
+                    is_feasible = True
+                    if self.vehicles.index(vehicle) != 0:
+                        ant.current_customer = self.customers[0]  # if it is not the first vehicle, move the ant back to depot
+                        ant.ant_route = [self.customers[0]]
+                    while is_feasible:
+                        if vehicle.get("index") in self.index_list_special_vehicles and len(ant.candidate_list_for_special_vehicles) != 0:
+                            ant.select_next_for_special()
+                            capacity_remaining = vehicle.get("capacity")
+                            delivery_time = 0
+                            for node in ant.ant_route:
+                                capacity_remaining -= node.get("demand")
+                            for i in range(len(ant.ant_route) - 1):
+                                from_node = ant.ant_route[i]
+                                to_node = ant.ant_route[i+1]
+                                delivery_time += ant.customers_graph.cost_matrix[from_node.get("index")][to_node.get("index")]/vehicle.get("velocity")
+                            if capacity_remaining < 0 or delivery_time > ant.current_customer.get("closetime"):
+                                ant.candidate_list.append(ant.current_customer)
+                                ant.candidate_list_for_special_vehicles.append(ant.current_customer)
+                                ant.ant_route.remove(ant.current_customer)
+                                break
+                            is_feasible = ant.any_feasible_node(capacity_remaining, delivery_time)
+                        else:
                             ant.select_next()
                             capacity_remaining = vehicle.get("capacity")
                             delivery_time = 0
@@ -70,9 +84,9 @@ class ACO(object):
                                 ant.ant_route.remove(ant.current_customer)
                                 break
                             is_feasible = ant.any_feasible_node(capacity_remaining, delivery_time)
-                        # After finish the its route, current vehicle move back to the depot --> add depot to the end of the route
-                        ant.ant_route.append(self.customers[0])
-                        ant.ant_route_for_all_vehicles.append(ant.ant_route)
+                    # After finish the its route, current vehicle move back to the depot --> add depot to the end of the route
+                    ant.ant_route.append(self.customers[0])
+                    ant.ant_route_for_all_vehicles.append(ant.ant_route)
 
                 # calculate current total cost for this ant
                 for single_route in ant.ant_route_for_all_vehicles:
@@ -124,6 +138,12 @@ class Ant(object):
         self.current_customer = start
         self.ant_route.append(start)
         self.candidate_list.remove(start)
+
+        # build candidate list for special vehicles
+        self.candidate_list_for_special_vehicles = []
+        for candidate in self.candidate_list:
+            if candidate.get("demand") < 10 and self.customers_graph.cost_matrix[0][candidate.get("index")] < 5:
+                self.candidate_list_for_special_vehicles.append(candidate)
 
         #preference to the global pheromone
         for i in range(self.customers_graph.total_customer):
@@ -180,6 +200,50 @@ class Ant(object):
             selected_customer = self.find_element_by_index(self.candidate_list, customer_index)
 
         self.candidate_list.remove(selected_customer)
+        if len(self.candidate_list_for_special_vehicles) != 0:
+            self.candidate_list_for_special_vehicles.remove(selected_customer)
+        self.ant_route.append(selected_customer)
+        self.current_customer = selected_customer
+
+    def select_next_for_special(self):
+        Q0 = 0.9
+        denominator = 0
+        q = random.uniform(0, 1)
+        selected_customer = {}
+
+        for candidate in self.candidate_list_for_special_vehicles:
+            i = self.current_customer.get("index")
+            j = candidate.get("index")
+            denominator += self.customers_graph.global_pheromone[i][j] ** self.aco.alpha * self.eta[i][j] ** self.aco.beta
+
+        probabilities =  [0 for i in range(self.customers_graph.total_customer)]
+        attractiveness = [0 for i in range(self.customers_graph.total_customer)]
+        for customer in self.aco.customers:
+            try:
+                self.candidate_list_for_special_vehicles.index(customer)  # test if the candidate list contains this customer
+                i = self.current_customer.get("index")
+                j = customer.get("index")
+                probabilities[customer.get("index")] = self.customers_graph.global_pheromone[i][j] ** self.aco.alpha * \
+                    self.eta[i][j] ** self.aco.beta / denominator
+                attractiveness[customer.get("index")] = self.customers_graph.global_pheromone[i][j] ** self.aco.alpha * \
+                    self.eta[i][j] ** self.aco.beta
+            except ValueError:
+                pass #do nothing
+
+        if q > Q0:
+            rand = random.random()
+            for i, probability in enumerate(probabilities):
+                rand -= probability
+                if rand <= 0:
+                    selected_customer = self.find_element_by_index(self.candidate_list_for_special_vehicles, i)
+                    break
+        else:
+            max_attractiveness = max(attractiveness)
+            customer_index = attractiveness.index(max_attractiveness)
+            selected_customer = self.find_element_by_index(self.candidate_list_for_special_vehicles, customer_index)
+
+        self.candidate_list.remove(selected_customer)
+        self.candidate_list_for_special_vehicles.remove(selected_customer)
         self.ant_route.append(selected_customer)
         self.current_customer = selected_customer
 
