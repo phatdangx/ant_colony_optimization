@@ -33,12 +33,11 @@ def find_shortest_path(customers: list , vehicle_capacity: int):
         route_list.append(temp_visited_customer)
         is_visited[temp_visited_customer.get("index")] = 1
         depot = temp_visited_customer
+    route_list.append(customers[0])
     return route_list
 
 
 def create_corresponding_graph(vehicles: list, customers: list):
-    vehicles = vehicles
-    customers = customers
     initial_route_list = []
     for vehicle in vehicles:
         initial_route = find_shortest_path(customers, vehicle.get("capacity"))
@@ -55,7 +54,6 @@ def main():
     # Declare variable
     vehicles = []
     customers = []
-    initial_route_list = []
     cost_matrix = []
 
     with open('../data/vehicle.txt') as f1:
@@ -85,10 +83,12 @@ def main():
             if item.get("index") != 0:
                 number_of_customer_in_first_route += 1
     total_cost_in_first_route = 0
+    vehicle_count = 0
     for single_route in initial_route_list:
         for i in range(len(single_route)):
             if i < len(single_route) - 1:
-                total_cost_in_first_route = total_cost_in_first_route + distance(single_route[i], single_route[i+1])
+                total_cost_in_first_route = total_cost_in_first_route + distance(single_route[i], single_route[i+1]) * vehicles[vehicle_count].get("cost")
+        vehicle_count += 1
 
     # Store the distance between 2 customer in a n x n matrix
     total_customer = len(customers)
@@ -100,14 +100,31 @@ def main():
 
     total_vehicle = len(vehicles)
     index_list_special_vehicles = [1, 2]
-    aco = ACO(1, 1, 1, total_vehicle, 100, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
+    aco = ACO(1, 1, 1, total_vehicle, 10, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 
+    print("\n FIRST ROUTE : \n")
+    for single_route in initial_route_list:
+        for item in single_route:
+            print(item.get("index"))
+        print("---")
+
+    print("\n SOLUTION : \n")
     for single_route in best_route:
         for item in single_route:
             print(item.get("index"))
         print("---")
+
+    total_cost_in_final_route = 0
+    vehicle_count = 0
+    for single_route in best_route:
+        for i in range(len(single_route)):
+            if i < len(single_route) - 1:
+                total_cost_in_final_route = total_cost_in_final_route + distance(single_route[i], single_route[i+1]) * vehicles[vehicle_count].get("cost")
+
+    print("TOTAL COST FOR FINAL ROUTE: ", total_cost_in_final_route)
+
 
 
 main()

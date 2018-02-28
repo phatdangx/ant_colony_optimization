@@ -7,6 +7,7 @@ class CustomersGraph(object):
         self.total_customer = total_customer
         self.global_pheromone = [[1 / (number_of_customer_in_first_route * total_cost_in_first_route) for j in range(total_customer)]
                           for i in range(total_customer)]
+        self.number_of_customer_in_first_route = number_of_customer_in_first_route
 
 
 class ACO(object):
@@ -39,7 +40,7 @@ class ACO(object):
         best_cost = self.total_cost_in_first_route
         best_route = []
         best_route_with_maximum_customer = list(self.initial_route_list)
-        maximum_customer = self.total_cost_in_first_route
+        maximum_customer = customers_graph.number_of_customer_in_first_route
         is_updated = False
         for e in range(self.E):
             ants = [Ant(self, customers_graph, i) for i in range(1, self.ITE)]
@@ -89,11 +90,13 @@ class ACO(object):
                     ant.ant_route_for_all_vehicles.append(ant.ant_route)
 
                 # calculate current total cost for this ant
+                vehicle_count = 0
                 for single_route in ant.ant_route_for_all_vehicles:
                     for i in range(len(single_route) - 1):
                         from_node_index = single_route[i].get("index")
                         to_node_index = single_route[i+1].get("index")
-                        ant.total_cost += customers_graph.cost_matrix[from_node_index][to_node_index]
+                        ant.total_cost += customers_graph.cost_matrix[from_node_index][to_node_index] * self.vehicles[vehicle_count].get("cost")
+                    vehicle_count += 1
                 ant.update_local_pheromone(ite)
                 if ant.total_cost < best_cost:
                     best_cost = ant.total_cost
@@ -142,7 +145,7 @@ class Ant(object):
         # build candidate list for special vehicles
         self.candidate_list_for_special_vehicles = []
         for candidate in self.candidate_list:
-            if candidate.get("demand") < 10 and self.customers_graph.cost_matrix[0][candidate.get("index")] < 5:
+            if candidate.get("demand") < 50 and self.customers_graph.cost_matrix[0][candidate.get("index")] < 5:
                 self.candidate_list_for_special_vehicles.append(candidate)
 
         #preference to the global pheromone
