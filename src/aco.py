@@ -55,6 +55,10 @@ class ACO(object):
                         ant.ant_route = [self.customers[0]]
                     while is_feasible:
                         if vehicle.get("index") in self.index_list_special_vehicles and len(ant.candidate_list_for_special_vehicles) != 0:
+                            if ant.ant_route[1].get("demand") > 50:
+                                ant.candidate_list.append(ant.ant_route[1])
+                                ant.ant_route.remove(ant.ant_route[1])
+                                break
                             ant.select_next_for_special()
                             capacity_remaining = vehicle.get("capacity")
                             delivery_time = 0
@@ -204,7 +208,11 @@ class Ant(object):
 
         self.candidate_list.remove(selected_customer)
         if len(self.candidate_list_for_special_vehicles) != 0:
-            self.candidate_list_for_special_vehicles.remove(selected_customer)
+            try:
+                self.candidate_list_for_special_vehicles.index(selected_customer)
+                self.candidate_list_for_special_vehicles.remove(selected_customer)
+            except ValueError:
+                pass
         self.ant_route.append(selected_customer)
         self.current_customer = selected_customer
 

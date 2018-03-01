@@ -1,14 +1,37 @@
 import math
 import random
+import re
 
 from src.aco import ACO, CustomersGraph
 
 is_visited = []
 
-def distance(customer1: dict, customer2: dict):
-    return math.sqrt((customer1['x'] - customer2['x']) ** 2 + (customer1['y'] - customer2['y']) ** 2)
 
-def find_shortest_path(customers: list , vehicle_capacity: int):
+def distance(customer1: dict, customer2: dict):
+
+    if customer1["index"] == customer2["index"]:
+        return 0
+    else:
+        lat1 = customer1['x']
+        lat2 = customer2['x']
+        long1 = customer1['y']
+        long2 = customer2['y']
+        try:
+            cost1 = math.cos(math.radians(90-lat1))
+            cost2 = math.cos(math.radians(90-lat2))
+            sin1 =  math.sin(math.radians(90-lat1))
+            sin2 =  math.sin(math.radians(90-lat2))
+            cos_delta = math.cos(math.radians(long1-long2))
+            temp = cost1 * cost2 + sin1 * sin2 * cos_delta
+            if temp > 1:
+                temp = 1
+            result = math.acos(temp)*6371
+            return result
+        except Exception as e:
+            print(e)
+
+
+def find_shortest_path(customers: list, vehicle_capacity: int):
     depot = customers[0]
     route_list = []
 
@@ -59,13 +82,14 @@ def main():
     with open('../data/vehicle.txt') as f1:
         for line in f1.read().splitlines():
             line.rstrip('\n')
-            vehicle = line.split(' ')
+            line.rstrip('\t')
+            vehicle = re.split(r'\t+', line)
             vehicles.append(dict(index=int(vehicle[0]), capacity=int(vehicle[1]), velocity=float(vehicle[2]),
                                  cost=int(vehicle[3])))
     with open('../data/customer.txt') as f2:
         for line in f2.read().splitlines():
-            customer = line.split(' ')
-            customers.append(dict(index=int(customer[0]), x=int(customer[1]), y=int(customer[2]),
+            customer = re.split(r'\t+', line)
+            customers.append(dict(index=int(customer[0]), x=float(customer[1]), y=float(customer[2]),
                                   demand=int(customer[3]), opentime=int(customer[4]), closetime=int(customer[5])))
 
     # Initial the value of visited customer. 0 stands for not visited
@@ -99,8 +123,8 @@ def main():
         cost_matrix.append(row)
 
     total_vehicle = len(vehicles)
-    index_list_special_vehicles = [1, 2]
-    aco = ACO(1, 1, 1, total_vehicle, 10, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
+    index_list_special_vehicles = [1]
+    aco = ACO(1, 1, 1, total_vehicle, 100, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 
