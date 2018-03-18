@@ -36,12 +36,29 @@ class ACO(object):
                 to_node_index = single_route[i + 1].get("index")
                 customer_graph.global_pheromone[from_node_index][to_node_index] = customer_graph.global_pheromone[from_node_index][to_node_index] + self.gama/maximum_customer
 
+    def should_continue_check (self, current_maximum_customer, last_maximum_customer, current_count):
+        should_continue = True
+        percentage = round(current_maximum_customer / last_maximum_customer, 2)
+        if percentage <= 1.05:
+            current_count += 1
+
+        if current_count == 5:
+            should_continue = False
+
+        if percentage > 1.05:
+            current_count = 0
+
+        return should_continue, current_count
+
     def solve(self, customers_graph: CustomersGraph):
         best_cost = self.total_cost_in_first_route
         best_route = []
         best_route_with_maximum_customer = list(self.initial_route_list)
         maximum_customer = customers_graph.number_of_customer_in_first_route
         is_updated = False
+        last_maximum_customer = 0
+        current_count = 0
+        current_iteration = 0
         for e in range(self.E):
             ants = [Ant(self, customers_graph, i) for i in range(1, self.ITE)]
             ant_of_best_route = ants[0]
@@ -53,12 +70,16 @@ class ACO(object):
                     if self.vehicles.index(vehicle) != 0:
                         ant.current_customer = self.customers[0]  # if it is not the first vehicle, move the ant back to depot
                         ant.ant_route = [self.customers[0]]
+
+                    if len(ant.candidate_list) == 0:
+                        is_feasible = False
                     while is_feasible:
                         if vehicle.get("index") in self.index_list_special_vehicles and len(ant.candidate_list_for_special_vehicles) != 0:
-                            if ant.ant_route[1].get("demand") > 50:
-                                ant.candidate_list.append(ant.ant_route[1])
-                                ant.ant_route.remove(ant.ant_route[1])
-                                break
+                            if len(ant.ant_route) > 1:
+                                if ant.ant_route[1].get("demand") > 20:
+                                    ant.candidate_list.append(ant.ant_route[1])
+                                    ant.ant_route.remove(ant.ant_route[1])
+                                    break
                             ant.select_next_for_special()
                             capacity_remaining = vehicle.get("capacity")
                             delivery_time = 0
@@ -113,14 +134,28 @@ class ACO(object):
                     for item in single_route:
                         if item.get("index") != 0:
                             number_of_customer_in_ant_route += 1
+
                 if number_of_customer_in_ant_route >= maximum_customer:
                     best_route_with_maximum_customer.clear()
                     best_route_with_maximum_customer = list(ant.ant_route_for_all_vehicles)
                     maximum_customer = number_of_customer_in_ant_route
+                    best_cost = ant.total_cost
                     is_updated = True
 
+            if e >= 11:
+                should_continue, current_count = self.should_continue_check(maximum_customer, last_maximum_customer, current_count)
+                if not should_continue:
+                    current_iteration = e
+                    break
+            if e >= 10:
+                last_maximum_customer = maximum_customer
+
             self.update_global_pheromone(customers_graph, best_cost, ant_of_best_route.local_pheromone)
-            self.update_global_pheromone_by_maximum_customer_route(customers_graph,maximum_customer,best_route_with_maximum_customer)
+            self.update_global_pheromone_by_maximum_customer_route(customers_graph,maximum_customer, best_route_with_maximum_customer )
+
+        print("\n***********\n")
+        print("STOP AT ITERATION: ", current_iteration)
+        print("\n***********\n")
 
         if is_updated:
             return best_route_with_maximum_customer
@@ -149,7 +184,7 @@ class Ant(object):
         # build candidate list for special vehicles
         self.candidate_list_for_special_vehicles = []
         for candidate in self.candidate_list:
-            if candidate.get("demand") < 50 and self.customers_graph.cost_matrix[0][candidate.get("index")] < 5:
+            if candidate.get("demand") < 20 and self.customers_graph.cost_matrix[0][candidate.get("index")] < 4:
                 self.candidate_list_for_special_vehicles.append(candidate)
 
         #preference to the global pheromone
@@ -159,9 +194,10 @@ class Ant(object):
         
     def any_feasible_node(self, capacity_remaining: int, delivery_time: int):
         result = False
-        for candidate in self.candidate_list:
-            if capacity_remaining > candidate.get("index") and delivery_time < candidate.get("closetime"):
-                result = True
+        if len(self.candidate_list) > 0:
+            for candidate in self.candidate_list:
+                if capacity_remaining > candidate.get("index") and delivery_time < candidate.get("closetime"):
+                    result = True
         return result
 
     def find_element_by_index(self, input_list: list, index: int):

@@ -1,6 +1,7 @@
 import math
 import random
 import re
+import time
 
 from src.aco import ACO, CustomersGraph
 
@@ -123,22 +124,22 @@ def main():
         cost_matrix.append(row)
 
     total_vehicle = len(vehicles)
-    index_list_special_vehicles = [1]
-    aco = ACO(1, 1, 1, total_vehicle, 100, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
+    index_list_special_vehicles = [4]
+    aco = ACO(1, 1, 1, total_vehicle, 50, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 
-    print("\n FIRST ROUTE : \n")
+    print("\n*********** FIRST ROUTE ***********\n")
     for single_route in initial_route_list:
         for item in single_route:
-            print(item.get("index"))
-        print("---")
+            print(item.get("index"), end=" ", flush=True)
+        print("\n")
 
-    print("\n SOLUTION : \n")
+    print("\n*********** SOLUTION ***********\n")
     for single_route in best_route:
         for item in single_route:
-            print(item.get("index"))
-        print("---")
+            print(item.get("index"), end=" ", flush=True)
+        print("\n")
 
     total_cost_in_final_route = 0
     vehicle_count = 0
@@ -147,8 +148,10 @@ def main():
             if i < len(single_route) - 1:
                 total_cost_in_final_route = total_cost_in_final_route + distance(single_route[i], single_route[i+1]) * vehicles[vehicle_count].get("cost")
 
-    print("TOTAL COST FOR FINAL ROUTE: ", total_cost_in_final_route)
+    print("TOTAL COST IN THE FINAL ROUTE: ", total_cost_in_final_route)
+    print("\n")
 
 
-
+start_time = time.time()
 main()
+print("RUNNING TIME: ", (time.time() - start_time))
