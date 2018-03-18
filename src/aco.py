@@ -47,8 +47,9 @@ class ACO(object):
 
         if percentage > 1.05:
             current_count = 0
+            last_maximum_customer = current_maximum_customer
 
-        return should_continue, current_count
+        return should_continue, current_count, last_maximum_customer
 
     def solve(self, customers_graph: CustomersGraph):
         best_cost = self.total_cost_in_first_route
@@ -143,11 +144,11 @@ class ACO(object):
                     is_updated = True
 
             if e >= 11:
-                should_continue, current_count = self.should_continue_check(maximum_customer, last_maximum_customer, current_count)
+                should_continue, current_count, last_maximum_customer = self.should_continue_check(maximum_customer, last_maximum_customer, current_count)
                 if not should_continue:
                     current_iteration = e
                     break
-            if e >= 10:
+            if e == 10:
                 last_maximum_customer = maximum_customer
 
             self.update_global_pheromone(customers_graph, best_cost, ant_of_best_route.local_pheromone)
