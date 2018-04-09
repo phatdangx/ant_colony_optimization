@@ -86,7 +86,7 @@ def main():
             line.rstrip('\t')
             vehicle = re.split(r'\t+', line)
             vehicles.append(dict(index=int(vehicle[0]), capacity=int(vehicle[1]), velocity=float(vehicle[2]),
-                                 cost=int(vehicle[3])))
+                                 cost=float(vehicle[3])))
     with open('../data/customer.txt') as f2:
         for line in f2.read().splitlines():
             customer = re.split(r'\t+', line)
@@ -122,10 +122,15 @@ def main():
         for j in range(total_customer):
             row.append(distance(customers[i], customers[j]))
         cost_matrix.append(row)
-
+    for i in range(total_customer):
+        for j in range(total_customer):
+            if cost_matrix[i][j] == 0 and i != j:
+                print(i)
+                print(j)
+                print("--")
     total_vehicle = len(vehicles)
-    index_list_special_vehicles = [4]
-    aco = ACO(1, 1, 1, total_vehicle, 50, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
+    index_list_special_vehicles = [6,7,8]
+    aco = ACO(1, 1, 1, total_vehicle, 500, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 
@@ -147,10 +152,16 @@ def main():
         for i in range(len(single_route)):
             if i < len(single_route) - 1:
                 total_cost_in_final_route = total_cost_in_final_route + distance(single_route[i], single_route[i+1]) * vehicles[vehicle_count].get("cost")
-
+        vehicle_count += 1
     print("TOTAL COST IN THE FINAL ROUTE: ", total_cost_in_final_route)
     print("\n")
-
+    number_of_customer_in_best_route = 0
+    for single_route in best_route:
+        for item in single_route:
+            if item.get("index") != 0:
+                number_of_customer_in_best_route += 1
+    print("TOTAL CUSTOMER IN THE FINAL ROUTE: ", number_of_customer_in_best_route)
+    print("\n")
 
 start_time = time.time()
 main()
