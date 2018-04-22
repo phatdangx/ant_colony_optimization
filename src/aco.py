@@ -47,7 +47,7 @@ class ACO(object):
         if percentage <= 1.01:
             current_count += 1
 
-        if current_count == 10:
+        if current_count == 50:
             should_continue = False
 
         if percentage > 1.01:
@@ -66,7 +66,7 @@ class ACO(object):
         current_count = 0
         current_iteration = 0
         for e in range(self.E):
-            ants = [Ant(self, customers_graph, i) for i in range(1, self.ITE)]
+            ants = [Ant(self, customers_graph, i, self.customers) for i in range(1, self.ITE)]
             ant_of_best_route = ants[0]
             ite = 0
             for ant in ants:
@@ -74,8 +74,7 @@ class ACO(object):
                 for vehicle in self.vehicles:
                     is_feasible = True
                     if self.vehicles.index(vehicle) != 0:
-                        ant.current_customer = self.customers[
-                            0]  # if it is not the first vehicle, move the ant back to depot
+                        ant.current_customer = self.customers[0]  # if it is not the first vehicle, move the ant back to depot
                         ant.ant_route = [self.customers[0]]
 
                     if len(ant.candidate_list) == 0:
@@ -173,20 +172,26 @@ class ACO(object):
                     maximum_customer = number_of_customer_in_ant_route
                     best_cost = ant.total_cost
                     is_updated = True
-
-            if e >= 51:
+            if e >= 11: #start counting
                 should_continue, current_count, last_maximum_customer = self.should_continue_check(maximum_customer,
                                                                                                    last_maximum_customer,
                                                                                                    current_count)
                 if not should_continue:
                     current_iteration = e
                     break
-            if e == 50:
+            if e == 10:
                 last_maximum_customer = maximum_customer
 
             self.update_global_pheromone(customers_graph, best_cost, ant_of_best_route.local_pheromone)
             self.update_global_pheromone_by_maximum_customer_route(customers_graph, maximum_customer,
                                                                    best_route_with_maximum_customer)
+            print("\n---- ITERATION {0} ----\n".format(e))
+            print("Maximum customer in this iteration: {0}\n".format(maximum_customer))
+            print("Route: \n")
+            for single_route in best_route_with_maximum_customer:
+                for item in single_route:
+                    print(item.get("index"), end=" ", flush=True)
+                print("\n")
 
         print("\n***********\n")
         print("STOP AT ITERATION: ", current_iteration)
@@ -199,7 +204,8 @@ class ACO(object):
 
 
 class Ant(object):
-    def __init__(self, aco: ACO, customers_graph: CustomersGraph, start_node_index: int):
+    def __init__(self, aco: ACO, customers_graph: CustomersGraph, start_node_index: int, customers: list):
+        self.customers = list(customers)
         self.aco = aco
         self.customers_graph = customers_graph
         self.total_cost = 0.0
@@ -211,9 +217,10 @@ class Ant(object):
         self.current_customer = {}
         self.ant_route = [aco.customers[0]]  # dispatch ant from depot
         self.eta = [
-            [0 if i == j else 1 / customers_graph.cost_matrix[i][j] for j in range(customers_graph.total_customer)]
+            [0 if i == j else self.customers[j].get("demand")/ customers_graph.cost_matrix[i][j] for j in range(customers_graph.total_customer)]
             for i in range(customers_graph.total_customer)]
         start = aco.customers[start_node_index]
+
         self.current_customer = start
         self.ant_route.append(start)
         self.candidate_list.remove(start)

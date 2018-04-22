@@ -129,8 +129,8 @@ def main():
                 print(j)
                 print("--")
     total_vehicle = len(vehicles)
-    index_list_special_vehicles = [6,7,8]
-    aco = ACO(1, 1, 1, total_vehicle, 500, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
+    index_list_special_vehicles = [1,2,3] #list out special vehicles
+    aco = ACO(1, 3, 1, total_vehicle, 5000, total_customer, vehicles, customers, total_cost_in_first_route, initial_route_list,index_list_special_vehicles)
     customers_graph = CustomersGraph(cost_matrix, total_customer, number_of_customer_in_first_route, total_cost_in_first_route)
     best_route = aco.solve(customers_graph)
 
@@ -162,6 +162,18 @@ def main():
                 number_of_customer_in_best_route += 1
     print("TOTAL CUSTOMER IN THE FINAL ROUTE: ", number_of_customer_in_best_route)
     print("\n")
+    total_capacity = 0
+    for i in range(len(vehicles)):
+        total_capacity += vehicles[i].get("capacity")
+    total_route_demand = 0
+    for single_route in best_route:
+        for item in single_route:
+            total_route_demand += item.get("demand")
+
+    ratio = (total_route_demand/total_capacity)*100
+    print("CAPACITY USSAGE PERCENTAGE: ", ratio)
+    print("\n")
+
 
 start_time = time.time()
 main()
